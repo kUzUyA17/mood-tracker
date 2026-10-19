@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0F1014" />
+    <title>Mood Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,560;1,9..144,500&family=Outfit:wght@300;400;500&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              ink: "#0F1014",
+              mist: "#E3E4E6",
+              sand: "#C4A484",
+              panel: "#22262F",
+            },
+            fontFamily: {
+              sans: ["Outfit", "system-ui", "sans-serif"],
+              serif: ["Fraunces", "Georgia", "serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+      ::selection {
+        background: #c4a484;
+        color: #1a1d24;
+      }
+
+      body,
+      body.bg-ink {
+        background-color: #0f1014;
+        background-image: none;
+      }
+
+      #greeting {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+
+      .ai-note {
+        font-size: 0.84rem;
+        font-style: italic;
+        line-height: 1.7;
+        letter-spacing: 0.01em;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .rise {
+        animation: rise 0.4s ease;
+      }
+
+      .context-tag {
+        border: 1px solid #2a2d35;
+        background: transparent;
+      }
+
+      .context-tag[aria-pressed="true"] {
+        border-color: #c4a484;
+        background-color: rgba(196, 164, 132, 0.12);
+        color: #c4a484;
+      }
+
+      @keyframes pulse-dot {
+        0%,
+        80%,
+        100% {
+          opacity: 0.2;
+          transform: scale(0.7);
+        }
+        40% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .save-dots {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        min-height: 1.25rem;
+      }
+
+      .save-dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: currentColor;
+        animation: pulse-dot 1s infinite ease-in-out;
+      }
+
+      .save-dots span:nth-child(2) {
+        animation-delay: 0.16s;
+      }
+
+      .save-dots span:nth-child(3) {
+        animation-delay: 0.32s;
+      }
+
+      @keyframes entry-in {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .entry-in {
+        animation: entry-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+      }
+
+      .surface {
+        background: #16181d;
+        border: 1px solid #2a2d35;
+        border-radius: 12px;
+      }
+
+      .entry-card {
+        transition: border-color 0.2s ease;
+      }
+
+      .entry-card:hover {
+        border-color: #3a3f4a;
+      }
+
+      #entry.surface:focus {
+        border-color: #c4a484;
+      }
+
+      @keyframes field-shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-6px);
+        }
+        40% {
+          transform: translateX(5px);
+        }
+        60% {
+          transform: translateX(-3px);
+        }
+        80% {
+          transform: translateX(2px);
+        }
+      }
+
+      #entry.surface.is-invalid,
+      #entry.surface.is-invalid:focus {
+        border-color: #c4564a;
+        animation: field-shake 0.42s ease;
+      }
+
+      #char-count.is-full {
+        color: #c4a484;
+      }
+
+      .chart-range[aria-pressed="true"],
+      body.light-theme .chart-range[aria-pressed="true"],
+      body.light-theme .chart-range[aria-pressed="true"]:hover {
+        border-color: #c4a484;
+        background-color: rgba(196, 164, 132, 0.12);
+        color: #c4a484;
+      }
+
+      #chart-empty:not(.is-range) [data-empty-range],
+      #chart-empty.is-range [data-empty-all] {
+        display: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .entry-in,
+        .rise,
+        .save-dots span,
+        #entry.surface.is-invalid {
+          animation: none;
+        }
+      }
+
+      body:not(.lang-en) .lang-en {
+        display: none;
+      }
+
+      body.lang-en .lang-ru {
+        display: none;
+      }
+
+      .is-on {
+        color: #c4a484;
+      }
+
+      .is-off {
+        color: rgba(227, 228, 230, 0.4);
+      }
+
+      body.light-theme,
+      body.light-theme.bg-ink,
+      body.light-theme .bg-ink {
+        background-color: #f7f7f8;
+        background-image: none;
+        color: #1a1d24;
+        color-scheme: light;
+      }
+
+      body.light-theme .surface {
+        background: #ffffff;
+        border-color: rgba(26, 29, 36, 0.08);
+      }
+
+      body.light-theme .context-tag {
+        border-color: rgba(26, 29, 36, 0.12);
+      }
+
+      body.light-theme .context-tag[aria-pressed="true"] {
+        border-color: #c4a484;
+        background-color: rgba(196, 164, 132, 0.16);
+        color: #8d6b48;
+      }
+
+      body.light-theme .entry-card:hover {
+        border-color: rgba(26, 29, 36, 0.2);
+      }
+
+      body.light-theme .bg-panel {
+        background-color: #ffffff;
+      }
+
+      body.light-theme .text-mist {
+        color: #1a1d24;
+      }
+
+      body.light-theme .text-ink {
+        color: #1a1d24;
+      }
+
+      body.light-theme .text-mist\/35,
+      body.light-theme .is-off {
+        color: rgba(26, 29, 36, 0.4);
+      }
+
+      body.light-theme .text-mist\/40,
+      body.light-theme .text-mist\/45,
+      body.light-theme .text-mist\/50 {
+        color: rgba(26, 29, 36, 0.5);
+      }
+
+      body.light-theme .text-mist\/60 {
+        color: rgba(26, 29, 36, 0.62);
+      }
+
+      body.light-theme .text-mist\/70 {
+        color: rgba(26, 29, 36, 0.72);
+      }
+
+      body.light-theme .text-mist\/75,
+      body.light-theme .text-mist\/85,
+      body.light-theme .text-mist\/90 {
+        color: rgba(26, 29, 36, 0.88);
+      }
+
+      body.light-theme .border-mist\/10 {
+        border-color: rgba(26, 29, 36, 0.1);
+      }
+
+      body.light-theme .border-mist\/15 {
+        border-color: rgba(26, 29, 36, 0.14);
+      }
+
+      body.light-theme .placeholder\:text-mist\/35::placeholder {
+        color: rgba(26, 29, 36, 0.4);
+      }
+
+      body.light-theme .hover\:bg-mist\/10:hover {
+        background-color: rgba(26, 29, 36, 0.06);
+      }
+
+      body.light-theme .hover\:text-mist:hover {
+        color: #1a1d24;
+      }
+
+      body.light-theme ::selection {
+        background: #c4a484;
+        color: #1a1d24;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-ink font-sans text-mist antialiased">
+    <main class="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-[4.55rem] sm:px-6 sm:py-[6.5rem]">
+      <header>
+        <div class="flex items-center justify-between gap-4">
+          <p class="text-[11px] font-medium uppercase tracking-[0.32em] text-sand">
+            <span class="lang-ru">Трекер настроения</span>
+            <span class="lang-en">Mood tracker</span>
+          </p>
+          <div class="flex shrink-0 items-center gap-2">
+            <button
+              id="theme-toggle"
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-mist/15 text-sm transition hover:border-sand/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"
+              aria-label="Theme"
+            >
+              <span id="theme-icon" aria-hidden="true">🌙</span>
+            </button>
+            <button
+              id="lang-toggle"
+              type="button"
+              class="rounded-full border border-mist/15 px-3 py-1.5 text-xs tracking-wide transition hover:border-sand/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"
+              aria-label="RU / EN"
+            >
+              <span id="lang-ru-mark">RU</span><span class="is-off"> / </span><span id="lang-en-mark">EN</span>
+            </button>
+          </div>
+        </div>
+        <h1 id="greeting" class="mt-4 text-4xl tracking-tight text-mist sm:text-5xl"></h1>
+        <p class="mt-5 max-w-md text-[15px] leading-relaxed text-mist/50">
+          <span class="lang-ru">Здесь можно быть честным с собой</span>
+          <span class="lang-en">Here you can be honest with yourself</span>
+        </p>
+      </header>
+
+      <form id="entry-form" class="mt-[3.25rem]" novalidate>
+        <label for="entry" class="sr-only">
+          <span class="lang-ru">Как прошёл ваш день?</span>
+          <span class="lang-en">How was your day?</span>
+        </label>
+        <textarea
+          id="entry"
+          name="entry"
+          rows="8"
+          maxlength="1000"
+          placeholder="How was your day?"
+          class="surface min-h-56 w-full resize-y px-5 py-5 text-lg leading-relaxed text-mist placeholder:text-mist/35 focus:outline-none"
+        ></textarea>
+        <p id="char-count" class="mt-2 text-right text-[11px] tabular-nums tracking-wide text-mist/40" aria-live="polite">0/1000</p>
+
+        <div id="context-tags" class="mt-[1.3rem] flex flex-wrap gap-2" role="group" aria-label="Context">
+          <button type="button" data-tag="Work" aria-pressed="false" class="context-tag rounded-full px-3.5 py-1.5 text-xs tracking-wide text-mist/70 transition hover:border-sand/40 hover:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"><span class="lang-ru">Работа</span><span class="lang-en">Work</span></button>
+          <button type="button" data-tag="Sleep" aria-pressed="false" class="context-tag rounded-full px-3.5 py-1.5 text-xs tracking-wide text-mist/70 transition hover:border-sand/40 hover:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"><span class="lang-ru">Сон</span><span class="lang-en">Sleep</span></button>
+          <button type="button" data-tag="Family" aria-pressed="false" class="context-tag rounded-full px-3.5 py-1.5 text-xs tracking-wide text-mist/70 transition hover:border-sand/40 hover:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"><span class="lang-ru">Семья</span><span class="lang-en">Family</span></button>
+          <button type="button" data-tag="Friends" aria-pressed="false" class="context-tag rounded-full px-3.5 py-1.5 text-xs tracking-wide text-mist/70 transition hover:border-sand/40 hover:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"><span class="lang-ru">Друзья</span><span class="lang-en">Friends</span></button>
+          <button type="button" data-tag="Health" aria-pressed="false" class="context-tag rounded-full px-3.5 py-1.5 text-xs tracking-wide text-mist/70 transition hover:border-sand/40 hover:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"><span class="lang-ru">Здоровье</span><span class="lang-en">Health</span></button>
+        </div>
+
+        <div class="mt-[1.3rem] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            id="save-button"
+            type="submit"
+            class="inline-flex min-h-11 min-w-[9.5rem] items-center justify-center rounded-full bg-sand px-8 py-3 text-sm font-medium tracking-wide text-ink transition hover:bg-[#d4b89a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand disabled:cursor-wait disabled:opacity-90"
+          >
+            <span id="save-label">
+              <span class="lang-ru">Сохранить</span>
+              <span class="lang-en">Save</span>
+            </span>
+            <span id="save-spinner" class="save-dots hidden" aria-hidden="true"><span></span><span></span><span></span></span>
+          </button>
+          <p class="text-xs text-mist/45">
+            <span class="lang-ru">При первом сохранении Puter может попросить войти.</span>
+            <span class="lang-en">The first save may ask you to sign in with Puter.</span>
+          </p>
+        </div>
+      </form>
+
+      <section id="result" class="mt-[2.6rem] min-h-16" aria-live="polite"></section>
+
+      <section class="mt-16" aria-labelledby="insights-heading">
+        <h2 id="insights-heading" class="text-[11px] font-medium uppercase tracking-[0.32em] text-mist/50">
+          <span class="lang-ru">Аналитика</span>
+          <span class="lang-en">Insights</span>
+        </h2>
+        <div id="insights" class="surface mt-5 px-5 py-5"></div>
+      </section>
+
+      <section class="mt-16 w-full min-w-0" aria-labelledby="chart-heading">
+        <h2 id="chart-heading" class="text-[11px] font-medium uppercase tracking-[0.32em] text-mist/50">
+          <span class="lang-ru">График настроения</span>
+          <span class="lang-en">Mood chart</span>
+        </h2>
+        <div id="chart-range" class="mt-4 hidden flex flex-wrap gap-2" role="group" aria-label="Chart period">
+          <button type="button" data-range="week" aria-pressed="true" class="chart-range rounded-full border border-mist/15 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-mist/60 transition hover:border-sand/40 hover:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand">
+            <span class="lang-ru">Неделя</span><span class="lang-en">Week</span>
+          </button>
+          <button type="button" data-range="month" aria-pressed="false" class="chart-range rounded-full border border-mist/15 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-mist/60 transition hover:border-sand/40 hover:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand">
+            <span class="lang-ru">Месяц</span><span class="lang-en">Month</span>
+          </button>
+          <button type="button" data-range="all" aria-pressed="false" class="chart-range rounded-full border border-mist/15 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-mist/60 transition hover:border-sand/40 hover:text-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand">
+            <span class="lang-ru">Все</span><span class="lang-en">All</span>
+          </button>
+        </div>
+        <div id="chart-empty">
+          <div data-empty-all class="surface mt-5 px-6 py-12 text-center">
+            <p class="font-serif text-[1.65rem] leading-snug text-mist">
+              <span class="lang-ru">Ваша история начинается здесь.</span>
+              <span class="lang-en">Your story starts here.</span>
+            </p>
+            <p class="mt-3 text-sm leading-relaxed text-mist/50">
+              <span class="lang-ru">Добавьте первую запись выше.</span>
+              <span class="lang-en">Add your first entry above.</span>
+            </p>
+          </div>
+          <p data-empty-range class="py-6 text-sm text-mist/45">
+            <span class="lang-ru">За этот период записей пока нет.</span>
+            <span class="lang-en">Nothing in this period yet.</span>
+          </p>
+        </div>
+        <div id="chart-wrap" class="relative mt-5 hidden h-64 w-full min-w-0 sm:h-72">
+          <canvas id="mood-chart" class="block h-full w-full" aria-label="Mood chart"></canvas>
+        </div>
+      </section>
+
+      <section class="mt-16" aria-labelledby="history-heading">
+        <h2 id="history-heading" class="text-[11px] font-medium uppercase tracking-[0.32em] text-mist/50">
+          <span class="lang-ru">Прошлые записи</span>
+          <span class="lang-en">Past entries</span>
+        </h2>
+        <div id="history" class="mt-[1.3rem] flex flex-col gap-4"></div>
+        <p class="mt-8">
+          <button
+            id="export-data"
+            type="button"
+            class="text-xs tracking-wide text-mist/45 underline-offset-4 transition hover:text-sand hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"
+          >
+            <span class="lang-ru">Экспорт данных</span>
+            <span class="lang-en">Export Data</span>
+          </button>
+        </p>
+        <p class="mt-3">
+          <button
+            id="clear-data"
+            type="button"
+            class="text-xs tracking-wide text-mist/35 underline-offset-4 transition hover:text-sand hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand"
+          >
+            <span class="lang-ru">Очистить все данные</span>
+            <span class="lang-en">Clear All Data</span>
+          </button>
+        </p>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+    <script>
+      const EMOTIONS = ["Happy", "Sad", "Anxious", "Calm", "Angry", "Neutral"];
+      const MOOD_LEVELS = ["Sad", "Angry", "Anxious", "Neutral", "Calm", "Happy"];
+      const EMOJI = {
+        Happy: "😊",
+        Sad: "😔",
+        Anxious: "😰",
+        Calm: "😌",
+        Angry: "😠",
+        Neutral: "📝",
+      };
+      const FALLBACK_EMOTION = "Neutral";
+      const THEME_KEY = "mood-tracker-theme";
+      const LANG_KEY = "mood-tracker-lang";
+      const COPY = {
+        ru: {
+          placeholder: "Как прошёл ваш день?",
+          needText: "Напишите пару слов о своём дне.",
+          reading: "Считываю настроение…",
+          writing: "Пишу заметку…",
+          fallback: "Запись сохранена. Анализ ИИ временно недоступен.",
+          saveFailed: "Не удалось сохранить запись.",
+          emptyHistory: "Сохранённые дни появятся здесь.",
+          insightsEmpty: "Добавьте еще несколько записей, чтобы увидеть аналитику.",
+          insightEmotion: "Чаще всего вы чувствуете:",
+          deleteEntry: "Удалить запись от {date}",
+          themeToLight: "Включить светлую тему",
+          themeToDark: "Включить тёмную тему",
+          analyzing: "Анализ…",
+          chartPeriod: "Период графика",
+          clearConfirm: "Удалить все сохранённые записи? Это нельзя отменить.",
+        },
+        en: {
+          placeholder: "How was your day?",
+          needText: "Write a few words about your day first.",
+          reading: "Reading the feeling…",
+          writing: "Writing a note…",
+          fallback: "Entry saved. AI analysis is temporarily unavailable.",
+          saveFailed: "The entry couldn't be saved.",
+          emptyHistory: "Saved days will show up here.",
+          insightsEmpty: "Add a few more entries to see insights.",
+          insightEmotion: "You mostly feel:",
+          deleteEntry: "Delete entry from {date}",
+          themeToLight: "Switch to light theme",
+          themeToDark: "Switch to dark theme",
+          analyzing: "Analyzing…",
+          chartPeriod: "Chart period",
+          clearConfirm: "Clear all saved entries? This cannot be undone.",
+        },
+      };
+      const EMOTION_LABELS = {
+        Happy: "Радость",
+        Sad: "Грусть",
+        Anxious: "Тревога",
+        Calm: "Спокойствие",
+        Angry: "Злость",
+        Neutral: "Нейтрально",
+      };
+      const GREETING = {
+        morning: { ru: "Доброе утро", en: "Good morning" },
+        afternoon: { ru: "Добрый день", en: "Good afternoon" },
+        evening: { ru: "Добрый вечер", en: "Good evening" },
+      };
+      const STORAGE_KEY = "mood-tracker-entries";
+      const TAGS = ["Work", "Sleep", "Family", "Friends", "Health"];
+
+      const form = document.getElementById("entry-form");
+      const entryInput = document.getElementById("entry");
+      const saveButton = document.getElementById("save-button");
+      const result = document.getElementById("result");
+      const history = document.getElementById("history");
+      const chartEmpty = document.getElementById("chart-empty");
+      const chartWrap = document.getElementById("chart-wrap");
+      const chartCanvas = document.getElementById("mood-chart");
+      const chartRangeBar = document.getElementById("chart-range");
+      const rangeButtons = [...document.querySelectorAll("#chart-range [data-range]")];
+      const tagButtons = [...document.querySelectorAll("#context-tags [data-tag]")];
+      const saveLabel = document.getElementById("save-label");
+      const saveSpinner = document.getElementById("save-spinner");
+      const CHAR_LIMIT = 1000;
+
+      const exportButton = document.getElementById("export-data");
+      const clearButton = document.getElementById("clear-data");
+      const charCount = document.getElementById("char-count");
+      const themeToggle = document.getElementById("theme-toggle");
+      const themeIcon = document.getElementById("theme-icon");
+      const langToggle = document.getElementById("lang-toggle");
+      const langRuMark = document.getElementById("lang-ru-mark");
+      const langEnMark = document.getElementById("lang-en-mark");
+
+      const DAY_MS = 24 * 60 * 60 * 1000;
+
+      let entries = loadEntries();
+      let moodChart = null;
+      let chartNotes = [];
+      let chartRange = "week";
+      let currentLang = localStorage.getItem(LANG_KEY) === "en" ? "en" : "ru";
+
+      if (currentLang === "en") document.body.classList.add("lang-en");
+      if (localStorage.getItem(THEME_KEY) === "light") document.body.classList.add("light-theme");
+      document.documentElement.lang = currentLang;
+      syncControls();
+      renderGreeting();
+      renderHistory();
+      renderChart();
+      renderInsights();
+
+      updateCharCount();
+
+      exportButton.addEventListener("click", exportData);
+      clearButton.addEventListener("click", clearAllData);
+      themeToggle.addEventListener("click", () => {
+        const next = document.body.classList.contains("light-theme") ? "dark" : "light";
+        applyTheme(next);
+      });
+      langToggle.addEventListener("click", () => {
+        applyLanguage(currentLang === "ru" ? "en" : "ru");
+      });
+
+      tagButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const pressed = button.getAttribute("aria-pressed") === "true";
+          button.setAttribute("aria-pressed", pressed ? "false" : "true");
+        });
+      });
+
+      rangeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const next = button.dataset.range;
+          if (!next || next === chartRange) return;
+          chartRange = next;
+          rangeButtons.forEach((item) => item.setAttribute("aria-pressed", item === button ? "true" : "false"));
+          renderChart();
+        });
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const text = entryInput.value.trim();
+        if (!text) {
+          showMessage(t("needText"));
+          markInvalid();
+          return;
+        }
+
+        setBusy(true);
+        showMessage(t("reading"));
+
+        let emotion = FALLBACK_EMOTION;
+        let comment = t("fallback");
+
+        try {
+          const detected = await detectEmotion(text);
+          if (detected) {
+            applySuggestedTags(detected.tags);
+            if (detected.emotion) {
+              emotion = detected.emotion;
+              showEmotion(emotion, t("writing"));
+              comment = (await supportiveComment(text, emotion)) || t("fallback");
+            }
+          }
+        } catch {
+          emotion = FALLBACK_EMOTION;
+          comment = t("fallback");
+        }
+
+        const tags = selectedTags();
+
+        try {
+          const entry = {
+            id: crypto.randomUUID(),
+            text,
+            emotion,
+            tags,
+            comment,
+            savedAt: Date.now(),
+          };
+          entries.unshift(entry);
+          saveEntries();
+          entryInput.value = "";
+          updateCharCount();
+          clearTags();
+          showEmotion(emotion, comment);
+          renderHistory(entry.id);
+          renderChart();
+          renderInsights();
+        } catch (error) {
+          showMessage(error.message || t("saveFailed"));
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      entryInput.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+          event.preventDefault();
+          form.requestSubmit();
+        }
+      });
+
+      entryInput.addEventListener("input", () => {
+        updateCharCount();
+        if (entryInput.value.trim()) clearInvalid();
+      });
+
+      function updateCharCount() {
+        if (entryInput.value.length > CHAR_LIMIT) {
+          const end = entryInput.selectionEnd;
+          entryInput.value = entryInput.value.slice(0, CHAR_LIMIT);
+          if (end != null) entryInput.setSelectionRange(CHAR_LIMIT, CHAR_LIMIT);
+        }
+        const length = entryInput.value.length;
+        charCount.textContent = `${length}/${CHAR_LIMIT}`;
+        charCount.classList.toggle("is-full", length >= CHAR_LIMIT);
+      }
+
+      function markInvalid() {
+        entryInput.setAttribute("aria-invalid", "true");
+        entryInput.classList.remove("is-invalid");
+        void entryInput.offsetWidth;
+        entryInput.classList.add("is-invalid");
+        entryInput.focus();
+      }
+
+      function clearInvalid() {
+        entryInput.classList.remove("is-invalid");
+        entryInput.removeAttribute("aria-invalid");
+      }
+
+      function clearAllData() {
+        if (!confirm(t("clearConfirm"))) return;
+        localStorage.clear();
+        location.reload();
+      }
+
+      function puterErrorMessage(error) {
+        if (!error) return "Unknown Puter error";
+        if (typeof error === "string") return error;
+        const message = error.message || error.error || error.msg || error.reason || "";
+        const code = error.code || error.status || error.statusCode || "";
+        const detail = [code, message].filter(Boolean).join(": ");
+        return detail || String(error);
+      }
+
+      async function askPuter(prompt) {
+        if (!window.puter?.ai?.chat) {
+          console.error("puter.ai.chat error: Puter is not loaded");
+          return null;
+        }
+
+        console.log("puter.ai.chat request", { model: "gpt-5-nano", prompt });
+        try {
+          const response = await puter.ai.chat(prompt, { model: "gpt-5-nano" });
+          console.log("puter.ai.chat response", response);
+          return response;
+        } catch (error) {
+          console.error("puter.ai.chat error:", puterErrorMessage(error), error);
+          return null;
+        }
+      }
+
+      async function detectEmotion(text) {
+        const prompt = [
+          "Analyze the journal entry below.",
+          "Choose one emotion from this list: Happy, Sad, Anxious, Calm, Angry.",
+          "Choose every fitting tag from this list only: Работа, Сон, Семья, Друзья, Здоровье.",
+          "Use a tag only when the entry clearly supports it. None, one, or several tags are all fine.",
+          "Reply in exactly two lines and nothing else.",
+          "Line 1 starts with \"Emotion: \" followed by the one emotion word.",
+          "Line 2 starts with \"Tags: \" followed by the chosen tags separated by commas.",
+          "If no tag fits, line 2 must be exactly: Tags: none",
+          "",
+          "Entry:",
+          text,
+        ].join("\n");
+
+        const response = await askPuter(prompt);
+        if (!response) return null;
+        const raw = responseText(response);
+        return { emotion: parseEmotion(raw), tags: parseTags(raw) };
+      }
+
+      async function supportiveComment(text, emotion) {
+        const prompt = [
+          "Write one short, empathetic sentence in response to the journal entry.",
+          "Use the same language as the entry. Do not translate it into another language.",
+          "Sound like a kind friend. One sentence only.",
+          "No quotes, labels, emoji, or advice lists.",
+          `Detected emotion: ${emotion}.`,
+          "",
+          "Entry:",
+          text,
+        ].join("\n");
+
+        const response = await askPuter(prompt);
+        if (!response) return "";
+        return firstSentence(responseText(response));
+      }
+
+      function firstSentence(raw) {
+        let text = String(raw || "").replace(/\s+/g, " ").trim();
+        text = text.replace(/^(response|comment|note)\s*:\s*/i, "");
+        text = text.replace(/^["“«']/, "").replace(/["”»']$/, "").trim();
+        const sentences = text.match(/[^。！？.!?]+[。！？.!?]+|[^。！？.!?]+$/g);
+        if (!sentences) return text;
+        return sentences[0].trim();
+      }
+
+      const TAG_BY_NAME = new Map([
+        ["work", "Work"],
+        ["работа", "Work"],
+        ["sleep", "Sleep"],
+        ["сон", "Sleep"],
+        ["family", "Family"],
+        ["семья", "Family"],
+        ["friends", "Friends"],
+        ["друзья", "Friends"],
+        ["health", "Health"],
+        ["здоровье", "Health"],
+      ]);
+
+      function parseTags(raw) {
+        const line = String(raw || "").match(/tags?\s*:\s*([^\n]+)/i);
+        if (!line) return [];
+        const value = line[1].trim().replace(/[.。]+$/u, "");
+        if (/^(none|нет|no tags?|n\/a|—|-)$/i.test(value)) return [];
+        const found = [];
+        for (const part of value.split(/[,;|/]+|\s+и\s+|\s+and\s+/i)) {
+          const key = part.trim().toLowerCase().replace(/^[^\p{L}]+|[^\p{L}]+$/gu, "");
+          const tag = TAG_BY_NAME.get(key);
+          if (tag && !found.includes(tag)) found.push(tag);
+        }
+        return found;
+      }
+
+      function applySuggestedTags(tags) {
+        if (!tags?.length) return;
+        const wanted = new Set(tags);
+        for (const button of tagButtons) {
+          if (wanted.has(button.dataset.tag)) button.setAttribute("aria-pressed", "true");
+        }
+      }
+
+      function selectedTags() {
+        return tagButtons
+          .filter((button) => button.getAttribute("aria-pressed") === "true")
+          .map((button) => button.dataset.tag)
+          .filter((tag) => TAGS.includes(tag));
+      }
+
+      function clearTags() {
+        tagButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
+      }
+
+      function responseText(response) {
+        if (typeof response === "string") return response;
+        const content = response?.message?.content ?? response?.content;
+        if (typeof content === "string") return content;
+        if (Array.isArray(content)) {
+          return content
+            .map((part) => (typeof part === "string" ? part : part?.text || ""))
+            .join("");
+        }
+        return "";
+      }
+
+      function parseEmotion(raw) {
+        const text = String(raw || "");
+        const line = text.match(/emotion\s*:\s*([A-Za-z]+)/i);
+        const source = line ? line[1] : text;
+        for (const emotion of EMOTIONS) {
+          if (emotion === FALLBACK_EMOTION) continue;
+          if (new RegExp(`\\b${emotion}\\b`, "i").test(source)) return emotion;
+        }
+        return null;
+      }
+
+      function showEmotion(emotion, comment) {
+        result.replaceChildren();
+        const block = document.createElement("div");
+        block.className = "rise";
+
+        const row = document.createElement("div");
+        row.className = "flex items-center gap-4";
+
+        const emoji = document.createElement("span");
+        emoji.className = "text-4xl leading-none";
+        emoji.textContent = EMOJI[emotion];
+        emoji.setAttribute("aria-hidden", "true");
+
+        const word = document.createElement("p");
+        word.className = "font-serif text-4xl text-mist";
+        word.textContent = emotionLabel(emotion);
+
+        row.append(emoji, word);
+        block.append(row);
+
+        if (comment) {
+          const note = document.createElement("p");
+          note.className = "ai-note mt-4 max-w-lg text-mist/70";
+          note.textContent = comment;
+          block.append(note);
+        }
+
+        result.append(block);
+      }
+
+      function showMessage(message) {
+        result.replaceChildren();
+        const note = document.createElement("p");
+        note.className = "text-sm text-mist/60";
+        note.textContent = message;
+        result.append(note);
+      }
+
+      function setBusy(busy) {
+        saveButton.disabled = busy;
+        saveButton.setAttribute("aria-busy", busy ? "true" : "false");
+        saveSpinner.classList.toggle("hidden", !busy);
+        saveLabel.classList.toggle("hidden", busy);
+        if (busy) saveButton.setAttribute("aria-label", t("analyzing"));
+        else saveButton.removeAttribute("aria-label");
+      }
+
+      function t(key) {
+        return COPY[currentLang][key];
+      }
+
+      function emotionLabel(emotion) {
+        return currentLang === "ru" ? EMOTION_LABELS[emotion] || emotion : emotion;
+      }
+
+      function applyLanguage(lang) {
+        currentLang = lang === "en" ? "en" : "ru";
+        document.body.classList.toggle("lang-en", currentLang === "en");
+        document.documentElement.lang = currentLang;
+        localStorage.setItem(LANG_KEY, currentLang);
+        syncControls();
+        renderGreeting();
+        renderHistory();
+        renderInsights();
+        if (moodChart) moodChart.update();
+      }
+
+      function applyTheme(theme) {
+        const light = theme === "light";
+        document.body.classList.toggle("light-theme", light);
+        localStorage.setItem(THEME_KEY, light ? "light" : "dark");
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) themeColor.setAttribute("content", light ? "#F7F7F8" : "#0F1014");
+        syncControls();
+        applyChartTheme();
+      }
+
+      function syncControls() {
+        const light = document.body.classList.contains("light-theme");
+        themeIcon.textContent = light ? "☀️" : "🌙";
+        themeToggle.setAttribute("aria-label", light ? t("themeToDark") : t("themeToLight"));
+        entryInput.placeholder = t("placeholder");
+        langRuMark.className = currentLang === "ru" ? "is-on" : "is-off";
+        langEnMark.className = currentLang === "en" ? "is-on" : "is-off";
+        chartRangeBar.setAttribute("aria-label", t("chartPeriod"));
+      }
+
+      function chartColors() {
+        const light = document.body.classList.contains("light-theme");
+        return light
+          ? {
+              tick: "#1A1D24",
+              grid: "#E3E4E8",
+              tooltipBg: "#ffffff",
+              tooltipTitle: "#8A6A4A",
+              tooltipBody: "#1A1D24",
+              tooltipBorder: "#E3E4E8",
+              pointBorder: "#F7F7F8",
+            }
+          : {
+              tick: "#FFFFFF",
+              grid: "#2A2D35",
+              tooltipBg: "#16181D",
+              tooltipTitle: "#C4A484",
+              tooltipBody: "#FFFFFF",
+              tooltipBorder: "#2A2D35",
+              pointBorder: "#0F1014",
+            };
+      }
+
+      function applyChartTheme() {
+        if (!moodChart) return;
+        const colors = chartColors();
+        moodChart.options.color = colors.tick;
+        for (const axis of [moodChart.options.scales.x, moodChart.options.scales.y]) {
+          axis.ticks.color = colors.tick;
+          axis.grid.color = colors.grid;
+        }
+        const tooltip = moodChart.options.plugins.tooltip;
+        tooltip.backgroundColor = colors.tooltipBg;
+        tooltip.titleColor = colors.tooltipTitle;
+        tooltip.bodyColor = colors.tooltipBody;
+        tooltip.borderColor = colors.tooltipBorder;
+        moodChart.data.datasets[0].pointBorderColor = colors.pointBorder;
+        moodChart.update();
+      }
+
+      function partOfDay(date = new Date()) {
+        const hour = date.getHours();
+        if (hour >= 5 && hour < 12) return "morning";
+        if (hour >= 12 && hour < 17) return "afternoon";
+        return "evening";
+      }
+
+      function renderGreeting() {
+        document.getElementById("greeting").textContent = GREETING[partOfDay()][currentLang];
+      }
+
+      function renderInsights() {
+        const insights = document.getElementById("insights");
+        insights.replaceChildren();
+
+        if (entries.length < 3) {
+          const placeholder = document.createElement("p");
+          placeholder.className = "text-sm leading-relaxed text-mist/60";
+          placeholder.textContent = t("insightsEmpty");
+          insights.append(placeholder);
+          return;
+        }
+
+        const emotion = mostFrequent(entries.map((entry) => entry.emotion));
+        insights.append(insightLine(t("insightEmotion"), emotionLabel(emotion)));
+      }
+
+      function insightLine(prefix, value) {
+        const line = document.createElement("p");
+        line.className = "text-[15px] leading-relaxed text-mist/85";
+        line.append(document.createTextNode(`${prefix} `));
+        const emphasis = document.createElement("span");
+        emphasis.className = "text-sand";
+        emphasis.textContent = value;
+        line.append(emphasis);
+        return line;
+      }
+
+      function mostFrequent(values) {
+        const counts = new Map();
+        for (const value of values) {
+          if (!value) continue;
+          counts.set(value, (counts.get(value) || 0) + 1);
+        }
+        let best = null;
+        let bestCount = 0;
+        for (const [value, count] of counts) {
+          if (count > bestCount) {
+            best = value;
+            bestCount = count;
+          }
+        }
+        return best;
+      }
+
+      function renderHistory(animateId) {
+        history.replaceChildren();
+
+        if (entries.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "py-6 text-sm text-mist/45";
+          empty.textContent = t("emptyHistory");
+          history.append(empty);
+          return;
+        }
+
+        for (const entry of entries) {
+          const article = document.createElement("article");
+          article.className = "surface entry-card px-5 py-5";
+          if (animateId && entry.id === animateId) article.classList.add("entry-in");
+
+          const meta = document.createElement("div");
+
+          const time = document.createElement("time");
+          time.className = "text-xs uppercase tracking-[0.18em] text-mist/45";
+          time.dateTime = new Date(entry.savedAt).toISOString();
+          time.textContent = formatWhen(entry.savedAt);
+
+          const badge = document.createElement("p");
+          badge.className = "text-lg leading-none";
+          badge.textContent = EMOJI[entry.emotion] || "";
+          badge.setAttribute("aria-label", emotionLabel(entry.emotion));
+
+          const deleteButton = document.createElement("button");
+          deleteButton.type = "button";
+          deleteButton.className =
+            "shrink-0 rounded-full p-1.5 text-mist/40 transition hover:bg-mist/10 hover:text-sand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sand";
+          deleteButton.setAttribute("aria-label", t("deleteEntry").replace("{date}", formatWhen(entry.savedAt)));
+          deleteButton.append(trashIcon());
+          deleteButton.addEventListener("click", () => deleteEntry(entry.id));
+
+          const actions = document.createElement("div");
+          actions.className = "flex shrink-0 items-center gap-2";
+          actions.append(badge, deleteButton);
+
+          const body = document.createElement("p");
+          body.className = "mt-4 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-mist/90";
+          body.textContent = entry.text;
+
+          meta.className = "flex items-center justify-between gap-4";
+          meta.append(time, actions);
+          article.append(meta, body);
+          if (entry.comment) {
+            const note = document.createElement("p");
+            note.className = "ai-note mt-3 text-mist/60";
+            note.textContent = entry.comment;
+            article.append(note);
+          }
+          history.append(article);
+        }
+      }
+
+      function deleteEntry(id) {
+        entries = entries.filter((entry) => entry.id !== id);
+        saveEntries();
+        renderHistory();
+        renderChart();
+        renderInsights();
+      }
+
+      function trashIcon() {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("stroke", "currentColor");
+        svg.setAttribute("stroke-width", "1.75");
+        svg.setAttribute("stroke-linecap", "round");
+        svg.setAttribute("stroke-linejoin", "round");
+        svg.setAttribute("aria-hidden", "true");
+        svg.classList.add("h-4", "w-4");
+        for (const d of ["M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13", "M10 11v6", "M14 11v6"]) {
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", d);
+          svg.append(path);
+        }
+        return svg;
+      }
+
+      function startOfDay(timestamp) {
+        const date = new Date(timestamp);
+        date.setHours(0, 0, 0, 0);
+        return date.getTime();
+      }
+
+      function entriesInRange(range) {
+        if (range === "all") return entries.slice();
+        const today = startOfDay(Date.now());
+        const span = range === "month" ? 30 : 7;
+        const from = today - (span - 1) * DAY_MS;
+        return entries.filter((entry) => entry.savedAt >= from);
+      }
+
+      function renderChart() {
+        const recent = entriesInRange(chartRange).sort((a, b) => a.savedAt - b.savedAt);
+        const hasAny = entries.length > 0;
+        chartRangeBar.classList.toggle("hidden", !hasAny);
+        chartEmpty.classList.toggle("is-range", hasAny && recent.length === 0);
+
+        if (recent.length === 0 || typeof Chart === "undefined") {
+          if (moodChart) {
+            moodChart.destroy();
+            moodChart = null;
+          }
+          chartNotes = [];
+          chartWrap.classList.add("hidden");
+          chartEmpty.classList.remove("hidden");
+          return;
+        }
+
+        chartEmpty.classList.add("hidden");
+        chartWrap.classList.remove("hidden");
+        chartNotes = recent;
+
+        const labels = recent.map((entry) => formatChartDate(entry.savedAt));
+        const data = recent.map((entry) => MOOD_LEVELS.indexOf(entry.emotion));
+
+        if (moodChart) {
+          moodChart.data.labels = labels;
+          moodChart.data.datasets[0].data = data;
+          applyChartTheme();
+          return;
+        }
+
+        moodChart = new Chart(chartCanvas, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                data,
+                borderColor: "#C4A484",
+                backgroundColor: "#C4A484",
+                borderWidth: 2,
+                tension: 0.35,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: "#C4A484",
+                pointBorderColor: chartColors().pointBorder,
+                pointBorderWidth: 2,
+                pointHitRadius: 14,
+                clip: false,
+              },
+            ],
+          },
+          options: {
+            color: chartColors().tick,
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: { top: 16, right: 18, bottom: 4, left: 4 },
+            },
+            interaction: {
+              mode: "nearest",
+              intersect: false,
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: chartColors().tooltipBg,
+                titleColor: chartColors().tooltipTitle,
+                bodyColor: chartColors().tooltipBody,
+                borderColor: chartColors().tooltipBorder,
+                borderWidth: 1,
+                displayColors: false,
+                padding: 12,
+                titleFont: { family: "Outfit", size: 12 },
+                bodyFont: { family: "Outfit", size: 12 },
+                callbacks: {
+                  title(items) {
+                    const entry = chartNotes[items[0]?.dataIndex];
+                    return entry ? formatTooltipDate(entry.savedAt) : "";
+                  },
+                  label(item) {
+                    const entry = chartNotes[item.dataIndex];
+                    if (!entry) return "";
+                    return [`${EMOJI[entry.emotion] || ""} ${emotionLabel(entry.emotion)}`.trim(), ...snippetLines(entry.text)];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: {
+                  color: chartColors().tick,
+                  maxRotation: 0,
+                  font: { family: "Outfit", size: 11 },
+                },
+                grid: { color: chartColors().grid },
+                border: { display: false },
+              },
+              y: {
+                min: 0,
+                max: MOOD_LEVELS.length - 1,
+                ticks: {
+                  stepSize: 1,
+                  autoSkip: false,
+                  color: chartColors().tick,
+                  font: { family: "Outfit", size: 11 },
+                  callback(value) {
+                    const name = MOOD_LEVELS[value];
+                    return name ? emotionLabel(name) : "";
+                  },
+                },
+                grid: { color: chartColors().grid },
+                border: { display: false },
+              },
+            },
+          },
+        });
+      }
+
+      function snippetLines(text) {
+        const clean = String(text || "").replace(/\s+/g, " ").trim();
+        const short = clean.length > 90 ? `${clean.slice(0, 87).trimEnd()}…` : clean;
+        const lines = [];
+        let line = "";
+        for (const word of short.split(" ")) {
+          const next = line ? `${line} ${word}` : word;
+          if (next.length > 34 && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = next;
+          }
+        }
+        if (line) lines.push(line);
+        return lines;
+      }
+
+      function exportData() {
+        const raw = localStorage.getItem(STORAGE_KEY) || "[]";
+        let pretty = raw;
+        try {
+          pretty = JSON.stringify(JSON.parse(raw), null, 2);
+        } catch {
+          pretty = raw;
+        }
+        const blob = new Blob([pretty], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "mood-tracker-entries.json";
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      function formatTooltipDate(timestamp) {
+        return new Intl.DateTimeFormat(currentLang === "ru" ? "ru-RU" : "en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        }).format(new Date(timestamp));
+      }
+
+      function formatChartDate(timestamp) {
+        return new Intl.DateTimeFormat(currentLang === "ru" ? "ru-RU" : "en-US", {
+          month: "short",
+          day: "numeric",
+        }).format(new Date(timestamp));
+      }
+
+      function formatWhen(timestamp) {
+        return new Intl.DateTimeFormat(currentLang === "ru" ? "ru-RU" : "en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(new Date(timestamp));
+      }
+
+      function loadEntries() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          if (!Array.isArray(parsed)) return [];
+          return parsed
+            .filter(
+              (entry) =>
+                entry &&
+                typeof entry.text === "string" &&
+                EMOTIONS.includes(entry.emotion) &&
+                Number.isFinite(entry.savedAt)
+            )
+            .map((entry) => ({
+              ...entry,
+              tags: Array.isArray(entry.tags) ? entry.tags.filter((tag) => TAGS.includes(tag)) : [],
+              comment: typeof entry.comment === "string" ? entry.comment : "",
+            }))
+            .sort((a, b) => b.savedAt - a.savedAt);
+        } catch {
+          return [];
+        }
+      }
+
+      function saveEntries() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      }
+    </script>
+  </body>
+</html>
